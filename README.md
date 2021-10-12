@@ -21,7 +21,6 @@ Instructions:
 ```
 1. Install laravel in src folder
 2. Set db host `mysql`, password `12345678`, change you desire database name from docker-compose.yml file
-3. Create a folder in this directory called `mysql`
 
 Then you are ready to rock and roll.
 ```
