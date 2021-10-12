@@ -1,0 +1,106 @@
+version: "3"
+
+networks:
+  laravel:
+
+services:
+  site:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev
+      args:
+        - NGINXUSER=${NGINXUSER:-www-data}
+        - NGINXGROUP=${NGINXGROUP:-www-data}
+    container_name: nginx
+    ports:
+      - 80:80
+    volumes:
+      - ./src:/var/www/html:delegated
+    depends_on:
+      - php
+    networks:
+      - laravel
+
+  php:
+    build:
+      context: ./php
+      dockerfile: Dockerfile.dev
+      args:
+        - PHPUSER=${PHPUSER:-www-data}
+        - PHPGROUP=${PHPGROUP:-www-data}
+    container_name: php
+    volumes:
+      - ./src:/var/www/html:delegated
+    networks:
+      - laravel
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: laravel_apps_database
+      MYSQL_ROOT_PASSWORD: 12345678
+    volumes:
+      - ./mysql:/var/lib/mysql
+    networks:
+      - laravel
+
+  phpmyadmin:
+    image: phpmyadmin
+    ports:
+      - 8080:80
+    restart: always
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
+    depends_on:
+      - mysql
+    networks:
+      - laravel
+
+  composer:
+    build:
+      context: ./composer
+      dockerfile: Dockerfile.dev
+      args:
+        - PHPUSER=${PHPUSER:-www-data}
+        - PHPGROUP=${PHPGROUP:-www-data}
+    container_name: composer
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    depends_on:
+      - php
+    user: ${PHPUSER:-www-data}
+    entrypoint: ["composer", "--ignore-platform-reqs"]
+    networks:
+      - laravel
+
+  npm:
+    image: node:14.17.6
+    container_name: npm
+    volumes:
+      - ./src:/var/www/html
+    ports:
+      - 3000:3000
+      - 3001:3001
+    working_dir: /var/www/html
+    entrypoint: ["npm"]
+    networks:
+      - laravel
+
+  artisan:
+    build:
+      context: ./php
+      dockerfile: Dockerfile.dev
+      args:
+        - PHPUSER=${PHPUSER:-www-data}
+        - PHPGROUP=${PHPGROUP:-www-data}
+    container_name: artisan
+    volumes:
+      - ./src:/var/www/html:delegated
+    working_dir: /var/www/html
+    entrypoint: ["php", "/var/www/html/artisan"]
+    networks:
+      - laravel
